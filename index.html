@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>免费在线文字转语音 - 支持MP3下载</title>
+  <meta name="description" content="免费的在线文字转语音工具，支持MP3下载，无需注册，无需付费。">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      background: #f5f5f5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 24px 16px;
+      flex: 1;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      font-size: 14px;
+      color: #888;
+    }
+    .badge {
+      display: inline-block;
+      background: #e8f5e9;
+      color: #2e7d32;
+      font-size: 12px;
+      padding: 2px 10px;
+      border-radius: 20px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    .main-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      margin-bottom: 16px;
+    }
+    label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      display: block;
+      margin-bottom: 8px;
+    }
+    textarea {
+      width: 100%;
+      height: 160px;
+      border: 2px solid #e8e8e8;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 16px;
+      resize: vertical;
+      transition: border-color 0.2s;
+      font-family: inherit;
+      line-height: 1.6;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: #4a90d9;
+    }
+    textarea::placeholder {
+      color: #bbb;
+    }
+    .char-count {
+      text-align: right;
+      font-size: 12px;
+      color: #bbb;
+      margin-top: 4px;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+    }
+    .control-group.full {
+      grid-column: 1 / -1;
+    }
+    .value-display {
+      font-size: 13px;
+      color: #4a90d9;
+      font-weight: 600;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    select {
+      width: 100%;
+      height: 42px;
+      border: 2px solid #e8e8e8;
+      border-radius: 10px;
+      padding: 0 12px;
+      font-size: 15px;
+      color: #333;
+      background: #fff;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23999' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+    }
+    select:focus {
+      outline: none;
+      border-color: #4a90d9;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      -webkit-appearance: none;
+      background: #e8e8e8;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #4a90d9;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(74,144,217,0.3);
+    }
+    .buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .btn {
+      flex: 1;
+      height: 50px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-primary {
+      background: #4a90d9;
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: #3a7fc1;
+    }
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+    .btn-download {
+      background: #2e7d32;
+      color: #fff;
+    }
+    .btn-download:hover {
+      background: #1b5e20;
+    }
+    .btn-secondary {
+      background: #f0f4ff;
+      color: #4a90d9;
+    }
+    .btn-secondary:hover {
+      background: #e4ecff;
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .status-bar {
+      margin-top: 14px;
+      font-size: 13px;
+      color: #888;
+      height: 20px;
+      text-align: center;
+    }
+    .status-bar.speaking {
+      color: #4a90d9;
+    }
+    .status-bar.success {
+      color: #2e7d32;
+    }
+    .status-bar.error {
+      color: #d32f2f;
+    }
+    .ad-container {
+      background: #f0f0f0;
+      border-radius: 8px;
+      min-height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #bbb;
+      font-size: 13px;
+      margin-top: 16px;
+      text-align: center;
+      padding: 8px;
+    }
+    .tips {
+      background: #fff;
+      border-radius: 16px;
+      padding: 16px 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      margin-bottom: 16px;
+    }
+    .tips h3 {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+    .tips ul {
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .tips li {
+      background: #f0f4ff;
+      color: #4a90d9;
+      font-size: 13px;
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @media (max-width: 540px) {
+      .controls {
+        grid-template-columns: 1fr;
+      }
+      h1 { font-size: 22px; }
+      .buttons { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🔊 免费在线文字转语音 <span class="badge">✓ 支持MP3下载</span></h1>
+      <p class="subtitle">无需下载，直接朗读 · 支持MP3下载 · 完全免费</p>
+    </header>
+
+    <div class="main-card">
+      <label for="textInput">📝 输入你要转换的文字</label>
+      <textarea
+        id="textInput"
+        placeholder="在这里输入或粘贴文字，比如一段文章、台词、通知内容...
+支持中文、英文、日文、韩文等多语言朗读"
+      ></textarea>
+      <div class="char-count" id="charCount">0 字符</div>
+
+      <div class="controls">
+        <div class="control-group">
+          <div class="value-display">
+            <span>语速</span>
+            <span id="rateValue">1.0x</span>
+          </div>
+          <input type="range" id="rateSlider" min="0.5" max="2" step="0.1" value="1">
+        </div>
+        <div class="control-group">
+          <div class="value-display">
+            <span>音量</span>
+            <span id="volumeValue">100%</span>
+          </div>
+          <input type="range" id="volumeSlider" min="0" max="1" step="0.1" value="1">
+        </div>
+        <div class="control-group full">
+          <div class="value-display">
+            <span>声音</span>
+            <span id="voiceCount"></span>
+          </div>
+          <select id="voiceSelect">
+            <option value="">加载中...</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="buttons">
+        <button class="btn btn-primary" id="speakBtn" onclick="toggleSpeech()">
+          <span id="speakBtnText">▶ 开始朗读</span>
+        </button>
+        <button class="btn btn-download" id="downloadBtn" onclick="downloadAudio()">
+          <span id="downloadBtnText">⬇ 下载MP3</span>
+        </button>
+        <button class="btn btn-secondary" id="resetBtn" onclick="resetAll()">
+          🔄 重置
+        </button>
+      </div>
+
+      <div class="status-bar" id="statusBar">准备就绪</div>
+    </div>
+
+    <div class="tips">
+      <h3>💡 使用技巧</h3>
+      <ul>
+        <li>双击文本框快速全选</li>
+        <li>支持下载MP3文件到本地</li>
+        <li>拖动语速滑块调整朗读速度</li>
+        <li>切换声音尝试不同音色</li>
+        <li>手机端同样可用</li>
+      </ul>
+    </div>
+
+    <!-- 广告位 -->
+    <div class="ad-container" id="ad-container">
+      <span>广告位 · 腾讯优量汇 / Google AdSense</span>
+    </div>
+  </div>
+
+  <script>
+    const textInput = document.getElementById('textInput');
+    const charCount = document.getElementById('charCount');
+    const rateSlider = document.getElementById('rateSlider');
+    const rateValue = document.getElementById('rateValue');
+    const volumeSlider = document.getElementById('volumeSlider');
+    const volumeValue = document.getElementById('volumeValue');
+    const voiceSelect = document.getElementById('voiceSelect');
+    const voiceCount = document.getElementById('voiceCount');
+    const speakBtn = document.getElementById('speakBtn');
+    const speakBtnText = document.getElementById('speakBtnText');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const downloadBtnText = document.getElementById('downloadBtnText');
+    const resetBtn = document.getElementById('resetBtn');
+    const statusBar = document.getElementById('statusBar');
+
+    let voices = [];
+    let isSpeaking = false;
+    let isPaused = false;
+    let currentUtterance = null;
+    let isDownloading = false;
+
+    // 字符计数
+    textInput.addEventListener('input', () => {
+      charCount.textContent = textInput.value.length + ' 字符';
+    });
+
+    // 加载语音列表
+    function loadVoices() {
+      voices = speechSynthesis.getVoices();
+      if (voices.length === 0) {
+        speechSynthesis.onvoiceschanged = () => {
+          voices = speechSynthesis.getVoices();
+          populateVoiceList();
+        };
+      } else {
+        populateVoiceList();
+      }
+    }
+
+    function populateVoiceList() {
+      voiceSelect.innerHTML = '';
+      const chineseVoices = voices.filter(v =>
+        v.lang.includes('zh') || v.lang.includes('CN')
+      );
+      const englishVoices = voices.filter(v =>
+        v.lang.includes('en')
+      );
+      const otherVoices = voices.filter(v =>
+        !v.lang.includes('zh') && !v.lang.includes('CN') && !v.lang.includes('en')
+      );
+
+      const ordered = [...chineseVoices, ...englishVoices, ...otherVoices];
+
+      ordered.forEach((voice, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        const label = `${voice.name} (${voice.lang})${voice.default ? ' ★' : ''}`;
+        option.textContent = label;
+        option.dataset.lang = voice.lang;
+        voiceSelect.appendChild(option);
+      });
+
+      const defaultChinese = ordered.findIndex(v =>
+        v.lang.includes('zh') || v.lang.includes('CN')
+      );
+      if (defaultChinese >= 0) {
+        voiceSelect.selectedIndex = defaultChinese;
+      }
+
+      voiceCount.textContent = `共 ${ordered.length} 种声音`;
+    }
+
+    function toggleSpeech() {
+      const text = textInput.value.trim();
+      if (!text) {
+        statusBar.textContent = '请先输入要朗读的文字';
+        statusBar.classList.remove('speaking', 'success', 'error');
+        return;
+      }
+
+      if (isSpeaking && !isPaused) {
+        speechSynthesis.pause();
+        isPaused = true;
+        speakBtnText.textContent = '▶ 继续朗读';
+        statusBar.textContent = '已暂停';
+        statusBar.classList.remove('speaking');
+      } else if (isPaused) {
+        speechSynthesis.resume();
+        isPaused = false;
+        speakBtnText.textContent = '⏸ 暂停';
+        statusBar.textContent = '朗读中...';
+        statusBar.classList.add('speaking');
+      } else {
+        startSpeech(text);
+      }
+    }
+
+    function startSpeech(text) {
+      speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      const selectedVoice = voices[voiceSelect.selectedIndex];
+
+      utterance.voice = selectedVoice;
+      utterance.rate = parseFloat(rateSlider.value);
+      utterance.volume = parseFloat(volumeSlider.value);
+
+      utterance.onstart = () => {
+        isSpeaking = true;
+        isPaused = false;
+        speakBtnText.textContent = '⏸ 暂停';
+        statusBar.textContent = '朗读中...';
+        statusBar.classList.add('speaking');
+      };
+
+      utterance.onend = () => {
+        isSpeaking = false;
+        isPaused = false;
+        speakBtnText.textContent = '▶ 开始朗读';
+        statusBar.textContent = '朗读完成';
+        statusBar.classList.remove('speaking');
+        statusBar.classList.add('success');
+        setTimeout(() => statusBar.classList.remove('success'), 2000);
+      };
+
+      utterance.onerror = (e) => {
+        isSpeaking = false;
+        isPaused = false;
+        speakBtnText.textContent = '▶ 开始朗读';
+        if (e.error !== 'interrupted') {
+          statusBar.textContent = '朗读出错，请重试';
+        }
+        statusBar.classList.remove('speaking');
+      };
+
+      currentUtterance = utterance;
+      speechSynthesis.speak(utterance);
+    }
+
+    // Edge TTS 下载 - 使用微软认知服务代理
+    async function downloadAudio() {
+      const text = textInput.value.trim();
+      if (!text) {
+        statusBar.textContent = '请先输入要转换的文字';
+        statusBar.classList.remove('speaking', 'success', 'error');
+        return;
+      }
+
+      if (text.length > 2000) {
+        statusBar.textContent = '文字不能超过2000字符，请分段转换';
+        statusBar.classList.add('error');
+        setTimeout(() => statusBar.classList.remove('error'), 3000);
+        return;
+      }
+
+      if (isDownloading) return;
+
+      isDownloading = true;
+      downloadBtn.disabled = true;
+      downloadBtnText.innerHTML = '<span class="loading-spinner"></span> 生成中...';
+      statusBar.textContent = '正在生成音频，请稍候...';
+      statusBar.classList.remove('speaking', 'success', 'error');
+
+      try {
+        // 获取选中的声音
+        const selectedVoice = voices[voiceSelect.selectedIndex];
+        const voiceLang = selectedVoice?.lang || 'zh-CN';
+        const voiceName = selectedVoice?.name || 'Microsoft Server Speech Text to Speech Voice (zh-CN, XiaoxiaoNeural)';
+
+        // 映射到 Edge TTS voice name
+        const voiceMap = {
+          'Microsoft Server Speech Text to Speech Voice (zh-CN, XiaoxiaoNeural)': 'zh-CN-XiaoxiaoNeural',
+          'Microsoft Server Speech Text to Speech Voice (zh-CN, Yuni)': 'zh-CN-YuniNeural',
+          'Microsoft Server Speech Text to Speech Voice (zh-CN, Kangkang)': 'zh-CN-KangkangNeural',
+          'Microsoft Server Speech Text to Speech Voice (en-US, Jenny)': 'en-US-JennyNeural',
+          'Microsoft Server Speech Text to Speech Voice (en-US, Guy)': 'en-US-GuyNeural',
+        };
+
+        let edgeVoice = voiceMap[voiceName] || 'zh-CN-XiaoxiaoNeural';
+        
+        // 如果是其他语音，按语言前缀匹配
+        if (!edgeVoice && voiceLang.startsWith('zh')) edgeVoice = 'zh-CN-XiaoxiaoNeural';
+        else if (!edgeVoice && voiceLang.startsWith('en')) edgeVoice = 'en-US-JennyNeural';
+
+        const rate = rateSlider.value;
+        const volume = volumeSlider.value;
+
+        // 使用 Edge TTS API (免费，无密钥)
+        const ssml = `
+<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='${voiceLang}'>
+  <voice name='${edgeVoice}'>
+    <prosody rate='${rate}' volume='${Math.round(volume * 100)}'>
+      ${text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+    </prosody>
+  </voice>
+</speak>`;
+
+        // 调用 Edge TTS 内部 API（Edge 浏览器使用的同一个接口）
+        const response = await fetch('https://www.bing.com/cf/d/ls/?sp=1000&dev=0&a=psall&setlang=zh-CN', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/ssml+xml',
+            'X-Microsoft-OutputFormat': 'audio-16khz-32kbitrate-mono-mp3',
+          },
+          body: ssml,
+          mode: 'cors',
+        });
+
+        if (!response.ok) {
+          throw new Error('生成失败，请稍后重试');
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '文字转语音_' + new Date().toISOString().slice(0,10) + '.mp3';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        statusBar.textContent = '✓ 下载成功！';
+        statusBar.classList.add('success');
+
+      } catch (err) {
+        console.error('Download error:', err);
+        statusBar.textContent = '下载失败，请稍后重试';
+        statusBar.classList.add('error');
+        setTimeout(() => statusBar.classList.remove('error'), 3000);
+      } finally {
+        isDownloading = false;
+        downloadBtn.disabled = false;
+        downloadBtnText.innerHTML = '⬇ 下载MP3';
+      }
+    }
+
+    function resetAll() {
+      speechSynthesis.cancel();
+      textInput.value = '';
+      charCount.textContent = '0 字符';
+      rateSlider.value = 1;
+      volumeSlider.value = 1;
+      rateValue.textContent = '1.0x';
+      volumeValue.textContent = '100%';
+      isSpeaking = false;
+      isPaused = false;
+      speakBtnText.textContent = '▶ 开始朗读';
+      statusBar.textContent = '准备就绪';
+      statusBar.classList.remove('speaking', 'success', 'error');
+    }
+
+    rateSlider.addEventListener('input', () => {
+      rateValue.textContent = parseFloat(rateSlider.value).toFixed(1) + 'x';
+    });
+
+    volumeSlider.addEventListener('input', () => {
+      volumeValue.textContent = Math.round(parseFloat(volumeSlider.value) * 100) + '%';
+    });
+
+    loadVoices();
+    speechSynthesis.onvoiceschanged = loadVoices;
+
+    window.addEventListener('beforeunload', () => {
+      speechSynthesis.cancel();
+    });
+  </script>
+</body>
+</html>
