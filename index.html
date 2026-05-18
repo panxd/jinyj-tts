@@ -356,7 +356,6 @@
     let voices = [];
     let isSpeaking = false;
     let isPaused = false;
-    let currentUtterance = null;
     let isDownloading = false;
 
     // 字符计数
@@ -364,7 +363,58 @@
       charCount.textContent = textInput.value.length + ' 字符';
     });
 
-    // 加载语音列表
+    // 语言标签映射
+    const langLabels = {
+      'zh': '中文', 'CN': '中文', 'TW': '中文', 'HK': '中文', 'SG': '中文',
+      'en': '英文', 'GB': '英文', 'US': '英文', 'AU': '英文', 'IE': '英文', 'ZA': '英文', 'IN': '英文',
+      'ja': '日文', 'JP': '日文',
+      'ko': '韩文', 'KR': '韩文',
+      'fr': '法文', 'FR': '法文', 'CA': '法文',
+      'de': '德文', 'DE': '德文',
+      'es': '西班牙文', 'ES': '西班牙文', 'MX': '西班牙文', 'US': '西班牙文',
+      'it': '意大利文', 'IT': '意大利文',
+      'pt': '葡萄牙文', 'PT': '葡萄牙文', 'BR': '葡萄牙文',
+      'ru': '俄文', 'RU': '俄文',
+      'th': '泰文', 'TH': '泰文',
+      'vi': '越南文', 'VN': '越南文',
+      'id': '印尼文', 'ID': '印尼文',
+      'ms': '马来文', 'MY': '马来文',
+      'hi': '印地文', 'IN': '印地文',
+      'te': '泰卢固文', 'IN': '泰卢固文',
+      'kn': '卡纳达文', 'IN': '卡纳达文',
+      'ta': '泰米尔文', 'IN': '泰米尔文',
+      'bn': '孟加拉文', 'IN': '孟加拉文',
+      'tr': '土耳其文', 'TR': '土耳其文',
+      'ar': '阿拉伯文',
+      'he': '希伯来文', 'IL': '希伯来文',
+      'nl': '荷兰文', 'NL': '荷兰文', 'BE': '荷兰文',
+      'pl': '波兰文', 'PL': '波兰文',
+      'sv': '瑞典文', 'SE': '瑞典文',
+      'da': '丹麦文', 'DK': '丹麦文',
+      'no': '挪威文', 'NO': '挪威文',
+      'fi': '芬兰文', 'FI': '芬兰文',
+      'cs': '捷克文', 'CZ': '捷克文',
+      'sk': '斯洛伐克文', 'SK': '斯洛伐克文',
+      'ro': '罗马尼亚文', 'RO': '罗马尼亚文',
+      'hu': '匈牙利文', 'HU': '匈牙利文',
+      'bg': '保加利亚文', 'BG': '保加利亚文',
+      'uk': '乌克兰文', 'UA': '乌克兰文',
+      'el': '希腊文', 'GR': '希腊文',
+      'sl': '斯洛文尼亚文', 'SI': '斯洛文尼亚文',
+      'hr': '克罗地亚文', 'HR': '克罗地亚文',
+      'ca': '加泰罗尼亚文', 'ES': '加泰罗尼亚文',
+    };
+
+    function getLangLabel(lang) {
+      const parts = lang.replace('-', '_').split('_');
+      for (let i = parts.length - 1; i >= 0; i--) {
+        const code = parts[i];
+        if (langLabels[code]) return langLabels[code];
+      }
+      return lang;
+    }
+
+    // 加载语音列表 - 按语言分组
     function loadVoices() {
       voices = speechSynthesis.getVoices();
       if (voices.length === 0) {
@@ -379,69 +429,93 @@
 
     function populateVoiceList() {
       voiceSelect.innerHTML = '';
-      const chineseVoices = voices.filter(v =>
-        v.lang.includes('zh') || v.lang.includes('CN')
-      );
-      const englishVoices = voices.filter(v =>
-        v.lang.includes('en')
-      );
-      const otherVoices = voices.filter(v =>
-        !v.lang.includes('zh') && !v.lang.includes('CN') && !v.lang.includes('en')
-      );
 
-      const ordered = [...chineseVoices, ...englishVoices, ...otherVoices];
-
-      ordered.forEach((voice, index) => {
-        const option = document.createElement('option');
-        option.value = index;
-        const label = `${voice.name} (${voice.lang})${voice.default ? ' ★' : ''}`;
-        option.textContent = label;
-        option.dataset.lang = voice.lang;
-        voiceSelect.appendChild(option);
+      // 按语言分组
+      const groups = {};
+      voices.forEach((v, i) => {
+        const label = getLangLabel(v.lang);
+        if (!groups[label]) groups[label] = [];
+        groups[label].push({ voice: v, index: i });
       });
 
-      const defaultChinese = ordered.findIndex(v =>
-        v.lang.includes('zh') || v.lang.includes('CN')
-      );
-      if (defaultChinese >= 0) {
-        voiceSelect.selectedIndex = defaultChinese;
-      }
+      // 语言优先级: 中文 > 英文 > 日文 > 韩文 > 其他
+      const priority = ['中文', '英文', '日文', '韩文'];
+      const sortedLabels = [
+        ...priority.filter(l => groups[l]),
+        ...Object.keys(groups).filter(l => !priority.includes(l)).sort()
+      ];
 
-      voiceCount.textContent = `共 ${ordered.length} 种声音`;
+      let defaultIndex = 0;
+
+      sortedLabels.forEach(label => {
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = label + ' (' + groups[label].length + '种)';
+
+        groups[label].forEach(({ voice, index }) => {
+          const option = document.createElement('option');
+          option.value = index;
+          const star = voice.default ? ' ★' : '';
+          option.textContent = voice.name + star;
+          option.dataset.lang = voice.lang;
+          optgroup.appendChild(option);
+
+          // 默认选中文第一个
+          if (label === '中文' && defaultIndex === 0) {
+            defaultIndex = index;
+          }
+        });
+
+        voiceSelect.appendChild(optgroup);
+      });
+
+      voiceSelect.selectedIndex = voices.findIndex((v, i) => i === defaultIndex);
+      if (voiceSelect.selectedIndex < 0) voiceSelect.selectedIndex = 0;
+
+      const total = voices.length;
+      voiceCount.textContent = `共 ${total} 种声音`;
     }
 
     function toggleSpeech() {
       const text = textInput.value.trim();
       if (!text) {
         statusBar.textContent = '请先输入要朗读的文字';
-        statusBar.classList.remove('speaking', 'success', 'error');
+        statusBar.className = 'status-bar error';
+        setTimeout(() => statusBar.className = 'status-bar', 2000);
         return;
       }
 
+      // 清理之前的状态，防止残留
+      if (speechSynthesis.pending || speechSynthesis.speaking) {
+        speechSynthesis.cancel();
+        isSpeaking = false;
+        isPaused = false;
+      }
+
       if (isSpeaking && !isPaused) {
+        // 正在朗读 -> 暂停
         speechSynthesis.pause();
         isPaused = true;
         speakBtnText.textContent = '▶ 继续朗读';
         statusBar.textContent = '已暂停';
-        statusBar.classList.remove('speaking');
+        statusBar.className = 'status-bar';
       } else if (isPaused) {
+        // 已暂停 -> 继续
         speechSynthesis.resume();
         isPaused = false;
         speakBtnText.textContent = '⏸ 暂停';
         statusBar.textContent = '朗读中...';
-        statusBar.classList.add('speaking');
+        statusBar.className = 'status-bar speaking';
       } else {
+        // 开始朗读
         startSpeech(text);
       }
     }
 
     function startSpeech(text) {
-      speechSynthesis.cancel();
-
       const utterance = new SpeechSynthesisUtterance(text);
       const selectedVoice = voices[voiceSelect.selectedIndex];
 
-      utterance.voice = selectedVoice;
+      utterance.voice = selectedVoice || null;
       utterance.rate = parseFloat(rateSlider.value);
       utterance.volume = parseFloat(volumeSlider.value);
 
@@ -450,7 +524,7 @@
         isPaused = false;
         speakBtnText.textContent = '⏸ 暂停';
         statusBar.textContent = '朗读中...';
-        statusBar.classList.add('speaking');
+        statusBar.className = 'status-bar speaking';
       };
 
       utterance.onend = () => {
@@ -458,38 +532,41 @@
         isPaused = false;
         speakBtnText.textContent = '▶ 开始朗读';
         statusBar.textContent = '朗读完成';
-        statusBar.classList.remove('speaking');
-        statusBar.classList.add('success');
-        setTimeout(() => statusBar.classList.remove('success'), 2000);
+        statusBar.className = 'status-bar success';
+        setTimeout(() => { if (statusBar.className === 'status-bar success') statusBar.className = 'status-bar'; }, 2000);
       };
 
       utterance.onerror = (e) => {
         isSpeaking = false;
         isPaused = false;
         speakBtnText.textContent = '▶ 开始朗读';
-        if (e.error !== 'interrupted') {
-          statusBar.textContent = '朗读出错，请重试';
+        if (e.error !== 'interrupted' && e.error !== 'canceled') {
+          statusBar.textContent = '朗读出错: ' + e.error;
+          statusBar.className = 'status-bar error';
+          setTimeout(() => statusBar.className = 'status-bar', 3000);
+        } else {
+          statusBar.textContent = '已停止';
+          statusBar.className = 'status-bar';
         }
-        statusBar.classList.remove('speaking');
       };
 
-      currentUtterance = utterance;
       speechSynthesis.speak(utterance);
     }
 
-    // Edge TTS 下载 - 使用微软认知服务代理
+    // Edge TTS 下载
     async function downloadAudio() {
       const text = textInput.value.trim();
       if (!text) {
         statusBar.textContent = '请先输入要转换的文字';
-        statusBar.classList.remove('speaking', 'success', 'error');
+        statusBar.className = 'status-bar error';
+        setTimeout(() => statusBar.className = 'status-bar', 2000);
         return;
       }
 
       if (text.length > 2000) {
         statusBar.textContent = '文字不能超过2000字符，请分段转换';
-        statusBar.classList.add('error');
-        setTimeout(() => statusBar.classList.remove('error'), 3000);
+        statusBar.className = 'status-bar error';
+        setTimeout(() => statusBar.className = 'status-bar', 3000);
         return;
       }
 
@@ -499,35 +576,78 @@
       downloadBtn.disabled = true;
       downloadBtnText.innerHTML = '<span class="loading-spinner"></span> 生成中...';
       statusBar.textContent = '正在生成音频，请稍候...';
-      statusBar.classList.remove('speaking', 'success', 'error');
+      statusBar.className = 'status-bar';
 
       try {
-        // 获取选中的声音
         const selectedVoice = voices[voiceSelect.selectedIndex];
         const voiceLang = selectedVoice?.lang || 'zh-CN';
-        const voiceName = selectedVoice?.name || 'Microsoft Server Speech Text to Speech Voice (zh-CN, XiaoxiaoNeural)';
+        const voiceName = selectedVoice?.name || '';
 
-        // 映射到 Edge TTS voice name
+        // 语音名映射到 Edge TTS voice
         const voiceMap = {
           'Microsoft Server Speech Text to Speech Voice (zh-CN, XiaoxiaoNeural)': 'zh-CN-XiaoxiaoNeural',
           'Microsoft Server Speech Text to Speech Voice (zh-CN, Yuni)': 'zh-CN-YuniNeural',
           'Microsoft Server Speech Text to Speech Voice (zh-CN, Kangkang)': 'zh-CN-KangkangNeural',
+          'Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoyi)': 'zh-CN-XiaoyiNeural',
+          'Microsoft Server Speech Text to Speech Voice (zh-CN, Yaoyao)': 'zh-CN-YaoyaoNeural',
+          'Microsoft Server Speech Text to Speech Voice (zh-CN, Tian') : 'zh-CN-TianNeural',
+          'Microsoft Server Speech Text to Speech Voice (zh-TW, Hsiao') : 'zh-TW-HsiaoChenNeural',
           'Microsoft Server Speech Text to Speech Voice (en-US, Jenny)': 'en-US-JennyNeural',
           'Microsoft Server Speech Text to Speech Voice (en-US, Guy)': 'en-US-GuyNeural',
+          'Microsoft Server Speech Text to Speech Voice (en-US, Aria)': 'en-US-AriaNeural',
+          'Microsoft Server Speech Text to Speech Voice (ja-JP, Nanami)': 'ja-JP-NanamiNeural',
+          'Microsoft Server Speech Text to Speech Voice (ko-KR, Sun') : 'ko-KR-SunHiNeural',
         };
 
-        let edgeVoice = voiceMap[voiceName] || 'zh-CN-XiaoxiaoNeural';
-        
-        // 如果是其他语音，按语言前缀匹配
-        if (!edgeVoice && voiceLang.startsWith('zh')) edgeVoice = 'zh-CN-XiaoxiaoNeural';
-        else if (!edgeVoice && voiceLang.startsWith('en')) edgeVoice = 'en-US-JennyNeural';
+        let edgeVoice = voiceMap[voiceName] || null;
+
+        // 按语言前缀匹配
+        if (!edgeVoice) {
+          if (voiceLang.startsWith('zh')) edgeVoice = 'zh-CN-XiaoxiaoNeural';
+          else if (voiceLang.startsWith('en')) edgeVoice = 'en-US-JennyNeural';
+          else if (voiceLang.startsWith('ja')) edgeVoice = 'ja-JP-NanamiNeural';
+          else if (voiceLang.startsWith('ko')) edgeVoice = 'ko-KR-SunHiNeural';
+          else if (voiceLang.startsWith('fr')) edgeVoice = 'fr-FR-DeniseNeural';
+          else if (voiceLang.startsWith('de')) edgeVoice = 'de-DE-KatjaNeural';
+          else if (voiceLang.startsWith('es')) edgeVoice = 'es-ES-ElviraNeural';
+          else if (voiceLang.startsWith('it')) edgeVoice = 'it-IT-ElsaNeural';
+          else if (voiceLang.startsWith('pt')) edgeVoice = 'pt-BR-FranciscaNeural';
+          else if (voiceLang.startsWith('ru')) edgeVoice = 'ru-RU-SvetlanaNeural';
+          else if (voiceLang.startsWith('th')) edgeVoice = 'th-TH-PremwadeeNeural';
+          else if (voiceLang.startsWith('vi')) edgeVoice = 'vi-VN-NamMinhNeural';
+          else if (voiceLang.startsWith('id')) edgeVoice = 'id-ID-GadisNeural';
+          else if (voiceLang.startsWith('ms')) edgeVoice = 'ms-MY-YasminNeural';
+          else if (voiceLang.startsWith('hi')) edgeVoice = 'hi-IN-SwaraNeural';
+          else if (voiceLang.startsWith('ar')) edgeVoice = 'ar-SA-ZariyahNeural';
+          else if (voiceLang.startsWith('nl')) edgeVoice = 'nl-NL-ColetteNeural';
+          else if (voiceLang.startsWith('pl')) edgeVoice = 'pl-PL-AgnieszkaNeural';
+          else if (voiceLang.startsWith('sv')) edgeVoice = 'sv-SE-SofieNeural';
+          else if (voiceLang.startsWith('da')) edgeVoice = 'da-DK-ChristelNeural';
+          else if (voiceLang.startsWith('no')) edgeVoice = 'no-NO-IselinNeural';
+          else if (voiceLang.startsWith('fi')) edgeVoice = 'fi-FI-SelmaNeural';
+          else if (voiceLang.startsWith('cs')) edgeVoice = 'cs-CZ-VlastaNeural';
+          else if (voiceLang.startsWith('sk')) edgeVoice = 'sk-SK-LucaNeural';
+          else if (voiceLang.startsWith('ro')) edgeVoice = 'ro-RO-AlinaNeural';
+          else if (voiceLang.startsWith('hu')) edgeVoice = 'hu-HU-NoemiNeural';
+          else if (voiceLang.startsWith('bg')) edgeVoice = 'bg-BG-KalinaNeural';
+          else if (voiceLang.startsWith('uk')) edgeVoice = 'uk-UA-PolinaNeural';
+          else if (voiceLang.startsWith('el')) edgeVoice = 'el-GR-AthinaNeural';
+          else if (voiceLang.startsWith('sl')) edgeVoice = 'sl-SI-PetraNeural';
+          else if (voiceLang.startsWith('hr')) edgeVoice = 'hr-HR-GabrijelaNeural';
+          else if (voiceLang.startsWith('ca')) edgeVoice = 'ca-ES-EnaNeural';
+          else if (voiceLang.startsWith('te')) edgeVoice = 'te-IN-ShrutiNeural';
+          else if (voiceLang.startsWith('kn')) edgeVoice = 'kn-IN-SapnaNeural';
+          else if (voiceLang.startsWith('ta')) edgeVoice = 'ta-IN-PallaviNeural';
+          else if (voiceLang.startsWith('bn')) edgeVoice = 'bn-IN-TanishayNeural';
+          else if (voiceLang.startsWith('tr')) edgeVoice = 'tr-TR-EmelNeural';
+          else if (voiceLang.startsWith('he')) edgeVoice = 'he-IL-HilaNeural';
+          else edgeVoice = 'zh-CN-XiaoxiaoNeural';
+        }
 
         const rate = rateSlider.value;
         const volume = volumeSlider.value;
 
-        // 使用 Edge TTS API (免费，无密钥)
-        const ssml = `
-<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='${voiceLang}'>
+        const ssml = `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='${voiceLang}'>
   <voice name='${edgeVoice}'>
     <prosody rate='${rate}' volume='${Math.round(volume * 100)}'>
       ${text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}
@@ -535,7 +655,6 @@
   </voice>
 </speak>`;
 
-        // 调用 Edge TTS 内部 API（Edge 浏览器使用的同一个接口）
         const response = await fetch('https://www.bing.com/cf/d/ls/?sp=1000&dev=0&a=psall&setlang=zh-CN', {
           method: 'POST',
           headers: {
@@ -546,9 +665,7 @@
           mode: 'cors',
         });
 
-        if (!response.ok) {
-          throw new Error('生成失败，请稍后重试');
-        }
+        if (!response.ok) throw new Error('生成失败');
 
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);
@@ -561,13 +678,13 @@
         URL.revokeObjectURL(url);
 
         statusBar.textContent = '✓ 下载成功！';
-        statusBar.classList.add('success');
+        statusBar.className = 'status-bar success';
 
       } catch (err) {
         console.error('Download error:', err);
         statusBar.textContent = '下载失败，请稍后重试';
-        statusBar.classList.add('error');
-        setTimeout(() => statusBar.classList.remove('error'), 3000);
+        statusBar.className = 'status-bar error';
+        setTimeout(() => statusBar.className = 'status-bar', 3000);
       } finally {
         isDownloading = false;
         downloadBtn.disabled = false;
@@ -587,7 +704,7 @@
       isPaused = false;
       speakBtnText.textContent = '▶ 开始朗读';
       statusBar.textContent = '准备就绪';
-      statusBar.classList.remove('speaking', 'success', 'error');
+      statusBar.className = 'status-bar';
     }
 
     rateSlider.addEventListener('input', () => {
@@ -598,6 +715,11 @@
       volumeValue.textContent = Math.round(parseFloat(volumeSlider.value) * 100) + '%';
     });
 
+    // 初始化语音
+    if (speechSynthesis.getVoices().length > 0) {
+      voices = speechSynthesis.getVoices();
+      populateVoiceList();
+    }
     loadVoices();
     speechSynthesis.onvoiceschanged = loadVoices;
 
