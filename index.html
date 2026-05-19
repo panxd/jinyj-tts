@@ -416,13 +416,9 @@
 
     // 加载语音列表 - 按语言分组
     function loadVoices() {
-      voices = speechSynthesis.getVoices();
-      if (voices.length === 0) {
-        speechSynthesis.onvoiceschanged = () => {
-          voices = speechSynthesis.getVoices();
-          populateVoiceList();
-        };
-      } else {
+      const list = speechSynthesis.getVoices();
+      if (list && list.length > 0) {
+        voices = list;
         populateVoiceList();
       }
     }
@@ -715,13 +711,26 @@
       volumeValue.textContent = Math.round(parseFloat(volumeSlider.value) * 100) + '%';
     });
 
-    // 初始化语音
-    if (speechSynthesis.getVoices().length > 0) {
+    // 清理旧的 onvoiceschanged（防止之前残留）
+    speechSynthesis.onvoiceschanged = null;
+
+    // 初始化语音 - 用 addEventListener 避免覆盖
+    function handleVoicesChanged() {
       voices = speechSynthesis.getVoices();
-      populateVoiceList();
+      if (voices.length > 0) {
+        populateVoiceList();
+        speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
+      }
     }
-    loadVoices();
-    speechSynthesis.onvoiceschanged = loadVoices;
+    speechSynthesis.addEventListener('voiceschanged', handleVoicesChanged);
+
+    // 同步检查：Chrome 缓存的语音列表可能已加载
+    const cached = speechSynthesis.getVoices();
+    if (cached.length > 0) {
+      voices = cached;
+      populateVoiceList();
+      speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
+    }
 
     window.addEventListener('beforeunload', () => {
       speechSynthesis.cancel();
